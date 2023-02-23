@@ -16,6 +16,28 @@ _str_to_activation = {
     'identity': nn.Identity(),
 }
 
+class MLP(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_hidden_layers, activation=nn.ReLU(),
+                 output_activation=nn.ReLU()):
+        super().__init__()
+
+        self.input_layer = nn.Linear(input_dim, hidden_dim)
+        self.hidden_layers = nn.ModuleList([nn.Linear(hidden_dim, hidden_dim) for i in range(num_hidden_layers)])
+        self.output_layer = nn.Linear(hidden_dim, output_dim)
+        self.relu = nn.ReLU()
+
+        layers = [self.input_layer, self.relu]
+        for i in range(num_hidden_layers):
+            layers.append(self.hidden_layers[i])
+            layers.append(activation)
+        layers.append(self.output_layer)
+        layers.append(output_activation)
+
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+
 
 def build_mlp(
         input_size: int,
@@ -47,7 +69,12 @@ def build_mlp(
 
     # TODO: return a MLP. This should be an instance of nn.Module
     # Note: nn.Sequential is an instance of nn.Module.
-    raise NotImplementedError
+    return MLP(input_dim=input_size,
+               hidden_dim=size,
+               output_dim=output_size,
+               num_hidden_layers=n_layers,
+               activation=activation,
+               output_activation=output_activation)
 
 
 device = None
