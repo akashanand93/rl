@@ -36,7 +36,9 @@ class MLP(nn.Module):
         self.model = nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.model(x)
+        x_tensor = torch.tensor(x, dtype=torch.float)
+        x_tensor = x_tensor.to(device)
+        return self.model(x_tensor)
 
 
 def build_mlp(
