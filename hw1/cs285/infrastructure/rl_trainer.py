@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import numpy as np
 import time
+import tqdm
 
 import gym
 import torch
@@ -116,7 +117,7 @@ class RL_Trainer(object):
             self.total_envsteps += envsteps_this_batch
 
             # relabel the collected obs with actions from a provided expert policy
-            if relabel_with_expert and itr>=start_relabel_with_expert:
+            if relabel_with_expert and itr >=start_relabel_with_expert:
                 paths = self.do_relabel_with_expert(expert_policy, paths)  # HW1: implement this function below
 
             # add collected data to replay buffer
@@ -166,14 +167,19 @@ class RL_Trainer(object):
                 # (2) collect `self.params['batch_size']` transitions
         if itr == 0:
             with open(load_initial_expertdata, 'rb') as f:
-                out = pickle.load(f)
-            return out, 0, None
-
-        # TODO collect `batch_size` samples to be used for training
-        # HINT1: use sample_trajectories from utils
-        # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
-        print("\nCollecting data to be used for training...")
-        paths, envsteps_this_batch = TODO
+                paths = pickle.load(f)
+            envsteps_this_batch = 0
+        else:
+            # TODO collect `batch_size` samples to be used for training
+            # HINT1: use sample_trajectories from utils
+            # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
+            print("\nCollecting data to be used for training...")
+            paths, envsteps_this_batch = utils.sample_trajectories(
+                env=self.env,
+                policy=collect_policy,
+                min_timesteps_per_batch=batch_size,
+                max_path_length=self.params['ep_len']
+            )
 
         # collect more rollouts with the same policy, to be saved as videos in tensorboard
         # note: here, we collect MAX_NVIDEO rollouts, each of length MAX_VIDEO_LEN
@@ -189,7 +195,7 @@ class RL_Trainer(object):
     def train_agent(self):
         print('\nTraining agent using sampled data from replay buffer...')
         all_logs = []
-        for train_step in range(self.params['num_agent_train_steps_per_iter']):
+        for train_step in tqdm.tqdm(range(self.params['num_agent_train_steps_per_iter'])):
 
             # TODO sample some data from the data buffer
             # HINT1: use the agent's sample function
@@ -279,5 +285,9 @@ class RL_Trainer(object):
                 print('{} : {}'.format(key, value))
                 self.logger.log_scalar(value, key, itr)
             print('Done logging...\n\n')
+
+            # lgging training loss
+            for i, scalar_dict in enumerate(training_logs):
+                self.logger.log_scalars(scalar_dict, "Training_log", i, 0)
 
             self.logger.flush()
